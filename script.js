@@ -54,6 +54,14 @@ function showSection(id, btn) {
     if(target) target.classList.add('active');
     if(btn) btn.classList.add('active');
     document.querySelector('.main-content').scrollTop = 0;
+    
+    // Si se muestra la sección de Mis Donaciones, inicializar el formulario
+    if (id === 'mis-donaciones') {
+        // Usar setTimeout para asegurar que el DOM esté listo
+        setTimeout(() => {
+            initializeDonationForm();
+        }, 100);
+    }
 }
 
 function calcImpact() {
@@ -773,43 +781,61 @@ function loadDonations() {
 // INICIALIZACIÓN
 // ============================================
 
-document.addEventListener('DOMContentLoaded', function() {
+/**
+ * Inicializa el formulario de donaciones
+ */
+function initializeDonationForm() {
     const typeSelect = document.getElementById('donationType');
     if (typeSelect) {
-        typeSelect.addEventListener('change', function() {
-            const quantityField = document.getElementById('quantityField');
-            const quantityInput = document.getElementById('donationQuantity');
-            const quantityLabel = document.getElementById('quantityLabel');
-            const quantityHint = document.getElementById('quantityHint');
-            
-            const config = donationConfig[this.value];
-            
-            if (config && config.requiresQuantity) {
-                quantityField.style.display = 'block';
-                quantityInput.required = true;
-                quantityLabel.textContent = config.label;
-                quantityInput.placeholder = config.placeholder;
-                quantityHint.textContent = config.hint;
-                
-                // Configurar validación mínima para cabello
-                if (this.value === 'cabello') {
-                    quantityInput.min = 30;
-                } else {
-                    quantityInput.min = 1;
-                }
-            } else {
-                quantityField.style.display = 'none';
-                quantityInput.required = false;
-                quantityInput.value = '';
-            }
-        });
+        // Remover listener anterior si existe
+        typeSelect.removeEventListener('change', handleDonationTypeChange);
+        // Agregar nuevo listener
+        typeSelect.addEventListener('change', handleDonationTypeChange);
     }
     
     // Establecer fecha de hoy por defecto
     const dateInput = document.getElementById('donationDate');
-    if (dateInput) {
+    if (dateInput && !dateInput.value) {
         dateInput.valueAsDate = new Date();
     }
+}
+
+/**
+ * Maneja el cambio de tipo de donación
+ */
+function handleDonationTypeChange(event) {
+    const quantityField = document.getElementById('quantityField');
+    const quantityInput = document.getElementById('donationQuantity');
+    const quantityLabel = document.getElementById('quantityLabel');
+    const quantityHint = document.getElementById('quantityHint');
+    
+    const config = donationConfig[event.target.value];
+    
+    if (config && config.requiresQuantity) {
+        quantityField.style.display = 'block';
+        quantityInput.required = true;
+        quantityLabel.textContent = config.label;
+        quantityInput.placeholder = config.placeholder;
+        quantityHint.textContent = config.hint;
+        
+        // Configurar validación mínima para cabello
+        if (event.target.value === 'cabello') {
+            quantityInput.min = 30;
+            quantityInput.max = 60;
+        } else {
+            quantityInput.min = 1;
+            quantityInput.max = 1000000;
+        }
+    } else {
+        quantityField.style.display = 'none';
+        quantityInput.required = false;
+        quantityInput.value = '';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar formulario de donaciones
+    initializeDonationForm();
     
     // Cargar estadísticas de la comunidad al iniciar
     loadCommunityStats();
