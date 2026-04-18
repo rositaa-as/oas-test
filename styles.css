@@ -62,6 +62,55 @@ body {
     font-size: 40px;
 }
 
+/* Sidebar User Info */
+.sidebar-user-info {
+    background: white;
+    border-radius: 15px;
+    padding: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(149, 117, 205, 0.1);
+    border-left: 4px solid var(--pink-accent);
+}
+
+.sidebar-user-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--pink-accent);
+    flex-shrink: 0;
+}
+
+.sidebar-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sidebar-user-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-user-text p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--lila-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-user-text span {
+    font-size: 11px;
+    color: var(--success);
+    font-weight: 600;
+}
+
 .menu-item {
     width: 100%;
     background: none;
@@ -335,4 +384,18 @@ input[type="number"] {
     .logo-img-sidebar { max-width: 50px; }
     .section-header-card { flex-direction: column; }
     .header-image, .header-text { width: 100%; }
+    .sidebar-user-info {
+        flex-direction: column;
+        padding: 8px;
+        gap: 5px;
+    }
+    .sidebar-user-text p,
+    .sidebar-user-text span {
+        font-size: 10px;
+        text-align: center;
+    }
+    .sidebar-user-avatar {
+        width: 35px;
+        height: 35px;
+    }
 }

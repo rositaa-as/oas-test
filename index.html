@@ -17,6 +17,17 @@
             <div class="img-fallback" style="display:none">O</div>
         </div>
         
+        <!-- Usuario logueado -->
+        <div id="sidebarUserInfo" class="sidebar-user-info" style="display: none;">
+            <div class="sidebar-user-avatar">
+                <img id="sidebarUserPhoto" src="" alt="User">
+            </div>
+            <div class="sidebar-user-text">
+                <p id="sidebarUserName">Usuario</p>
+                <span id="sidebarUserStatus">Sesión activa</span>
+            </div>
+        </div>
+        
         <button class="menu-item active" onclick="showSection('inicio', this)">
             🏠 <span>Inicio</span>
         </button>
@@ -31,6 +42,9 @@
         </button>
         <button class="menu-item" onclick="showSection('sillas', this)">
             ♿ <span>Suministros</span>
+        </button>
+        <button id="misDonacionesBtn" class="menu-item" onclick="showSection('mis-donaciones', this)" style="display: none;">
+            📋 <span>Mis Donaciones</span>
         </button>
     </nav>
 
@@ -273,6 +287,83 @@
                 </div>
             </div>
         </div>
+        <!-- SECCIÓN: MIS DONACIONES (Solo visible con sesión iniciada) -->
+        <div id="mis-donaciones" class="section">
+            <div class="section-header-card">
+                <div class="header-image" style="background-color: #fff3e0;">
+                    <svg width="100" height="100" viewBox="0 0 24 24" fill="#ff9800" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>Mis Donaciones</h1>
+                    <p>Registra y lleva el control de tus contribuciones para ayudar a quienes más lo necesitan.</p>
+                </div>
+            </div>
+
+            <div class="interactive-card">
+                <h3>➕ Registrar Nueva Donación</h3>
+                <form id="donationForm" onsubmit="addDonation(event)" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--lila-dark);">Tipo de Donación</label>
+                        <select id="donationType" required style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--sidebar-lila); font-size: 15px;">
+                            <option value="">Selecciona un tipo...</option>
+                            <option value="tapitas">🥤 Tapitas</option>
+                            <option value="sangre">🩸 Sangre</option>
+                            <option value="cabello">💇‍♀️ Cabello</option>
+                            <option value="silla">♿ Silla de Ruedas</option>
+                            <option value="muletas">🦯 Muletas / Andaderas</option>
+                            <option value="medicamento">💊 Medicamento</option>
+                        </select>
+                    </div>
+                    
+                    <div id="quantityField" style="display: none;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--lila-dark);">Cantidad</label>
+                        <input type="number" id="donationQuantity" min="1" placeholder="Ej: 1000" style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--sidebar-lila); font-size: 15px;">
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--lila-dark);">Fecha</label>
+                        <input type="date" id="donationDate" required style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--sidebar-lila); font-size: 15px;">
+                    </div>
+
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--lila-dark);">Notas (opcional)</label>
+                        <textarea id="donationNotes" rows="3" placeholder="Agrega detalles sobre tu donación..." style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--sidebar-lila); font-size: 15px; resize: vertical;"></textarea>
+                    </div>
+
+                    <button type="submit" style="background: var(--pink-accent); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                        ✅ Registrar Donación
+                    </button>
+                </form>
+            </div>
+
+            <div class="interactive-card">
+                <h3>📊 Historial de Donaciones</h3>
+                <div id="donationsList" style="margin-top: 15px;">
+                    <p style="text-align: center; color: #999; padding: 20px;">No hay donaciones registradas aún. ¡Comienza a registrar tus contribuciones!</p>
+                </div>
+            </div>
+
+            <div class="interactive-card" style="background: linear-gradient(135deg, #f3e5f5 0%, #fff9fb 100%); border-left-color: var(--pink-accent);">
+                <h3>🌟 Tu Impacto Total</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 12px;">
+                        <p style="font-size: 28px; font-weight: bold; color: var(--pink-accent); margin: 0;" id="totalTapitas">0</p>
+                        <p style="font-size: 14px; color: #666; margin: 5px 0 0 0;">Tapitas</p>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 12px;">
+                        <p style="font-size: 28px; font-weight: bold; color: #e53935; margin: 0;" id="totalSangre">0</p>
+                        <p style="font-size: 14px; color: #666; margin: 5px 0 0 0;">Donaciones de Sangre</p>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 12px;">
+                        <p style="font-size: 28px; font-weight: bold; color: var(--lila-dark); margin: 0;" id="totalOtros">0</p>
+                        <p style="font-size: 14px; color: #666; margin: 5px 0 0 0;">Otras Donaciones</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
     </main>
 

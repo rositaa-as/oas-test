@@ -53,6 +53,12 @@ auth.onAuthStateChanged((user) => {
     const userName = document.getElementById('userName');
     const userEmail = document.getElementById('userEmail');
     const userPhoto = document.getElementById('userPhoto');
+    
+    // Elementos del sidebar
+    const sidebarUserInfo = document.getElementById('sidebarUserInfo');
+    const sidebarUserName = document.getElementById('sidebarUserName');
+    const sidebarUserPhoto = document.getElementById('sidebarUserPhoto');
+    const misDonacionesBtn = document.getElementById('misDonacionesBtn');
 
     if (user) {
         // Usuario autenticado
@@ -61,10 +67,37 @@ auth.onAuthStateChanged((user) => {
         userName.textContent = user.displayName || 'Usuario';
         userEmail.textContent = user.email;
         userPhoto.src = user.photoURL || 'https://via.placeholder.com/50';
+        
+        // Mostrar info en sidebar
+        if (sidebarUserInfo) {
+            sidebarUserInfo.style.display = 'flex';
+            sidebarUserName.textContent = user.displayName || 'Usuario';
+            sidebarUserPhoto.src = user.photoURL || 'https://via.placeholder.com/50';
+        }
+        
+        // Mostrar botón de Mis Donaciones
+        if (misDonacionesBtn) {
+            misDonacionesBtn.style.display = 'flex';
+        }
+        
+        // Cargar donaciones del usuario
+        if (typeof loadDonations === 'function') {
+            loadDonations();
+        }
     } else {
         // Usuario no autenticado
         loginBtn.style.display = 'flex';
         userInfo.style.display = 'none';
+        
+        // Ocultar info en sidebar
+        if (sidebarUserInfo) {
+            sidebarUserInfo.style.display = 'none';
+        }
+        
+        // Ocultar botón de Mis Donaciones
+        if (misDonacionesBtn) {
+            misDonacionesBtn.style.display = 'none';
+        }
     }
 });
 
