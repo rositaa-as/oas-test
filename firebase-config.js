@@ -85,6 +85,11 @@ auth.onAuthStateChanged((user) => {
         if (typeof loadDonations === 'function') {
             loadDonations();
         }
+        
+        // Cargar estadísticas de la comunidad
+        if (typeof loadCommunityStats === 'function') {
+            loadCommunityStats();
+        }
     } else {
         // Usuario no autenticado
         loginBtn.style.display = 'flex';

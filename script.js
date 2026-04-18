@@ -90,6 +90,107 @@ function updateNeeds() {
 // ============================================
 
 /**
+ * Actualiza las métricas globales de la comunidad
+ */
+async function updateCommunityStats(donationType, quantity, isDelete = false) {
+    const statsRef = db.collection('donaciones_totales').doc('stats');
+    
+    try {
+        const increment = isDelete ? -quantity : quantity;
+        const fieldMap = {
+            'tapitas': 'total_tapitas',
+            'sangre': 'total_sangre',
+            'cabello': 'total_cabello',
+            'silla': 'total_sillas',
+            'muletas': 'total_muletas',
+            'medicamento': 'total_medicamento'
+        };
+        
+        const field = fieldMap[donationType];
+        if (!field) {
+            console.warn('⚠️ Tipo de donación no reconocido:', donationType);
+            return;
+        }
+        
+        // Verificar si el documento existe
+        const statsDoc = await statsRef.get();
+        
+        if (!statsDoc.exists) {
+            // Crear documento inicial con todos los campos en 0
+            console.log('📝 Creando documento de estadísticas globales...');
+            await statsRef.set({
+                total_tapitas: 0,
+                total_sangre: 0,
+                total_cabello: 0,
+                total_sillas: 0,
+                total_muletas: 0,
+                total_medicamento: 0,
+                last_updated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        // Actualizar el campo específico
+        await statsRef.update({
+            [field]: firebase.firestore.FieldValue.increment(increment),
+            last_updated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log(`✅ Estadísticas globales actualizadas: ${field} ${isDelete ? '-' : '+'}${quantity}`);
+    } catch (error) {
+        console.error('❌ Error al actualizar estadísticas globales:', error.message);
+        // No lanzar error para no bloquear la donación
+    }
+}
+
+/**
+ * Carga y muestra las estadísticas globales de la comunidad
+ */
+async function loadCommunityStats() {
+    try {
+        console.log('📊 Cargando estadísticas de la comunidad...');
+        
+        const statsDoc = await db.collection('donaciones_totales').doc('stats').get();
+        
+        if (statsDoc.exists) {
+            const data = statsDoc.data();
+            
+            document.getElementById('communityTapitas').textContent =
+                (data.total_tapitas || 0).toLocaleString();
+            document.getElementById('communitySangre').textContent =
+                (data.total_sangre || 0).toLocaleString();
+            document.getElementById('communityCabello').textContent =
+                (data.total_cabello || 0).toLocaleString();
+            document.getElementById('communitySillas').textContent =
+                (data.total_sillas || 0).toLocaleString();
+            document.getElementById('communityMuletas').textContent =
+                (data.total_muletas || 0).toLocaleString();
+            document.getElementById('communityMedicamento').textContent =
+                (data.total_medicamento || 0).toLocaleString();
+            
+            console.log('✅ Estadísticas de la comunidad cargadas');
+        } else {
+            console.log('ℹ️ No hay estadísticas globales aún');
+            // Mostrar ceros
+            document.getElementById('communityTapitas').textContent = '0';
+            document.getElementById('communitySangre').textContent = '0';
+            document.getElementById('communityCabello').textContent = '0';
+            document.getElementById('communitySillas').textContent = '0';
+            document.getElementById('communityMuletas').textContent = '0';
+            document.getElementById('communityMedicamento').textContent = '0';
+        }
+    } catch (error) {
+        console.error('❌ Error al cargar estadísticas de la comunidad:', error.message);
+        // Mostrar ceros en caso de error
+        document.getElementById('communityTapitas').textContent = '0';
+        document.getElementById('communitySangre').textContent = '0';
+        document.getElementById('communityCabello').textContent = '0';
+        document.getElementById('communitySillas').textContent = '0';
+        document.getElementById('communityMuletas').textContent = '0';
+        document.getElementById('communityMedicamento').textContent = '0';
+    }
+}
+
+/**
  * Genera un ID de donación en formato ddmmyyhhmmss_userId
  */
 function generateDonationId(userId) {
@@ -140,6 +241,9 @@ async function saveDonationToFirestore(donation) {
         
         // Actualizar estadísticas del usuario en /users/{user_id}
         await updateUserStats(user.uid, donation.type, quantity);
+        
+        // Actualizar estadísticas globales de la comunidad
+        await updateCommunityStats(donation.type, quantity, false);
         
         console.log('✅ Donación guardada en Firestore:', donationId);
         return donationId;
@@ -360,6 +464,9 @@ async function deleteDonationFromFirestore(donationId) {
         } else {
             console.warn('⚠️ Perfil de usuario no encontrado, no se actualizaron estadísticas');
         }
+        
+        // Actualizar estadísticas globales de la comunidad (restar)
+        await updateCommunityStats(donationData.type, donationData.quantity, true);
         
         console.log('✅ Donación eliminada de Firestore');
         return true;
@@ -605,4 +712,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dateInput) {
         dateInput.valueAsDate = new Date();
     }
+    
+    // Cargar estadísticas de la comunidad al iniciar
+    loadCommunityStats();
 });
