@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oasis - Guía de Donación GDL</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo-container">
+            <img src="logo oasis.jpg" alt="Logo Oasis" class="logo-img-sidebar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="img-fallback" style="display:none">O</div>
+        </div>
+        
+        <button class="menu-item active" onclick="showSection('inicio', this)">
+            🏠 <span>Inicio</span>
+        </button>
+        <button class="menu-item" onclick="showSection('tapitas', this)">
+            🥤 <span>Tapitas</span>
+        </button>
+        <button class="menu-item" onclick="showSection('sangre', this)">
+            🩸 <span>Sangre</span>
+        </button>
+        <button class="menu-item" onclick="showSection('cabello', this)">
+            💇‍♀️ <span>Cabello</span>
+        </button>
+        <button class="menu-item" onclick="showSection('sillas', this)">
+            ♿ <span>Suministros</span>
+        </button>
+    </nav>
+
+    <main class="main-content">
+        
+        <!-- SECCIÓN: INICIO -->
+        <div id="inicio" class="section active">
+            <div class="welcome-box">
+                <img src="logo oasis.jpg" alt="Oasis Logo" class="logo-large" onerror="this.src='https://via.placeholder.com/280x150?text=Oasis+Guadalajara'">
+                <h1>Tu ayuda transforma vidas</h1>
+                <p style="font-size: 18px; color: #666; max-width: 600px;">Explora las opciones de donación en Guadalajara y descubre cómo tu aporte hoy genera un oasis mañana.</p>
+                
+                <div style="display:flex; gap:15px; margin-top:30px; flex-wrap: wrap; justify-content: center;">
+                    <div class="interactive-card" style="margin:0; border-color: var(--pink-accent);">
+                        <h4 style="margin:0">Total Recolectado (Comunidad)</h4>
+                        <p style="font-size: 24px; font-weight: bold; color: var(--pink-accent); margin: 10px 0;">+7000 Tapitas</p>
+                        <small>Actualizado hoy</small>
+                    </div>
+                </div>
+
+                <!-- Botón de Login -->
+                <div id="authSection" class="auth-section">
+                    <button id="loginBtn" class="btn-login" onclick="loginWithGoogle()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px;">
+                            <path fill="currentColor" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
+                        </svg>
+                        Iniciar sesión con Google
+                    </button>
+                    <div id="userInfo" class="user-info" style="display: none;">
+                        <img id="userPhoto" class="user-photo" alt="User">
+                        <div>
+                            <p id="userName" style="font-weight: bold; margin: 0;"></p>
+                            <p id="userEmail" style="font-size: 14px; color: #666; margin: 5px 0 0 0;"></p>
+                        </div>
+                        <button id="logoutBtn" class="btn-logout" onclick="logout()">Cerrar sesión</button>
+                    </div>
+                </div>
+
+                <div class="contact-info-box">
+                    <p style="color: #888; margin-bottom: 10px;">¿Tienes dudas?</p>
+                    <div class="contact-email">
+                        ✉️ sugarstrongsisters@gmail.com
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: TAPITAS -->
+        <div id="tapitas" class="section">
+            <div class="section-header-card">
+                <div class="header-image">
+                    <!-- Icono de Corazón Estilizado -->
+                    <svg width="120" height="120" viewBox="0 0 24 24" fill="var(--pink-accent)" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>Donación de Tapitas</h1>
+                    <p>Pequeñas acciones que nacen del corazón y generan grandes cambios en tratamientos oncológicos.</p>
+                </div>
+            </div>
+            
+            <div class="interactive-card">
+                <h3>🧮 Calculadora de Impacto</h3>
+                <div class="calc-grid">
+                    <input type="number" id="tapaInput" placeholder="0" oninput="calcImpact()">
+                    <div>
+                        <p id="impactResult" style="font-weight: bold; color: var(--success);">Ingresa una cantidad</p>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+                <h3>📊 Tabla de Equivalencias</h3>
+                <table class="impact-table">
+                    <thead>
+                        <tr>
+                            <th>Cantidad de Tapas</th>
+                            <th>Beneficio Generado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1,000 tapitas</td><td>Apoyo en transporte</td></tr>
+                        <tr><td>3,000 tapitas</td><td>Suplemento alimenticio</td></tr>
+                        <tr class="highlight-row"><td>5,000 tapitas</td><td>⭐ 1 Quimioterapia (Promedio)</td></tr>
+                        <tr><td>10,000 tapitas</td><td>Estudio de laboratorio</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="margin-top: 30px; color: var(--lila-dark);">📍 Centros de Acopio en GDL</h3>
+            <div class="location-grid">
+                <div class="location-card">
+                    <strong>Nariz Roja GDL</strong>
+                    <p>Calle Hospital 142, El Retiro. Principal receptor de tapitas para quimios.</p>
+                    <a href="https://www.google.com/maps/search/Nariz+Roja+AC+Guadalajara" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>Mi Gran Esperanza</strong>
+                    <p>C. Juan Álvarez 237, Centro. Apoyo integral a niños con cáncer.</p>
+                    <a href="https://www.google.com/maps/search/Mi+Gran+Esperanza+AC" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>Hospital General de Occidente</strong>
+                    <p>Av. Zoquipan 1050. Conocido como "Zoquipan", recibe donaciones constantes.</p>
+                    <a href="https://www.google.com/maps/search/Hospital+General+de+Occidente+Zoquipan" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>Banco de Tapitas GDL</strong>
+                    <p>Embajadores en Zapopan y Centro. Contenedores en plazas principales.</p>
+                    <a href="https://www.google.com/maps/search/Banco+de+Tapitas+Guadalajara" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>CUCS - UdeG</strong>
+                    <p>Sierra Mojada 950. Centro Universitario de Ciencias de la Salud (Recolección estudiantil).</p>
+                    <a href="https://www.google.com/maps/search/CUCS+UdeG+Guadalajara" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: SANGRE -->
+        <div id="sangre" class="section">
+            <div class="section-header-card">
+                <div class="header-image" style="background-color: #ffebee;">
+                    <svg width="100" height="100" viewBox="0 0 24 24" fill="#e53935" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2c-4.42 0-8 3.58-8 8 0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>Donación de Sangre</h1>
+                    <p>Un regalo de vida que solo te toma 45 minutos.</p>
+                </div>
+            </div>
+
+            <div class="interactive-card">
+                <h3>✅ Requisitos básicos</h3>
+                <p>• Peso mayor a 50kg • Ayuno de 4 horas • No haber estado enfermo de gripe, tos, diarrea o infección dental en los últimos 14 días•  Acudir con una identificación oficial con fotografía y vigente (INE, pasaporte, cédula profesional, credencial ADIMSS, cartilla de salud vigente, licencia de manejo)   •No haber ingerido bebidas alcohólicas en 72 horas previas a la donación </p>
+            </div>
+
+            <div class="location-grid">
+                <div class="location-card">
+                    <strong>Hospital Civil Viejo</strong>
+                    <p>Coronel Calderón 777. Banco de sangre principal.</p>
+                    <a href="https://www.google.com/maps/search/Hospital+Civil+Viejo+Banco+de+Sangre" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>CETS Jalisco</strong>
+                    <p>Av. Zoquipan 1050, Zapopan.</p>
+                    <a href="https://www.google.com/maps/search/CETS+Jalisco" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>HGR 46 IMSS</strong>
+                    <p>Av. 8 de Julio y Lázaro Cárdenas.</p>
+                    <a href="https://www.google.com/maps/search/IMSS+46+Banco+de+Sangre" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: CABELLO -->
+        <div id="cabello" class="section">
+            <div class="section-header-card">
+                <div class="header-image" style="background-color: #f3e5f5;">
+                    <svg width="100" height="100" viewBox="0 0 24 24" fill="var(--lila-dark)" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 3c-4.97 0-9 4.03-9 9 0 4.97 4.03 9 9 9s9-4.03 9-9c0-4.97-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>Donación de Cabello</h1>
+                    <p>Ayúdanos a devolver sonrisas con pelucas oncológicas.</p>
+                </div>
+            </div>
+
+            <div class="interactive-card">
+                <h3>📏 Regla Virtual</h3>
+                <p>Mínimo <strong>30 cm</strong> de largo, limpio y seco.</p>
+                <div style="height: 10px; width: 100%; background: #eee; border-radius: 5px; margin-top: 15px;">
+                    <div style="width: 75%; height: 100%; background: var(--pink-accent); border-radius: 5px;"></div>
+                </div>
+            </div>
+
+            <div class="location-grid">
+                <div class="location-card">
+                    <strong>Nariz Roja</strong>
+                    <p>Taller artesanal de pelucas.</p>
+                    <a href="https://www.google.com/maps/search/Nariz+Roja+AC" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>CANICA A.C.</strong>
+                    <p>Apoyo a niños y sus familias.</p>
+                    <a href="https://www.google.com/maps/search/CANICA+AC" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>DIF Jalisco</strong>
+                    <p>Av. Alcalde 1220. Campañas permanentes.</p>
+                    <a href="https://www.google.com/maps/search/DIF+Jalisco+Oficinas+Centrales" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: SILLAS -->
+        <div id="sillas" class="section">
+            <div class="section-header-card">
+                <div class="header-image" style="background-color: #e8f5e9;">
+                    <svg width="100" height="100" viewBox="0 0 24 24" fill="var(--success)" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                </div>
+                <div class="header-text">
+                    <h1>Suministros Médicos</h1>
+                    <p>Aparatos ortopédicos y medicamentos que salvan el día.</p>
+                </div>
+            </div>
+            
+            <div class="interactive-card">
+                <h3>📦 Selecciona tu donativo</h3>
+                <select id="itemSelect" onchange="updateNeeds()" style="width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--sidebar-lila);">
+                    <option value="">Selecciona...</option>
+                    <option value="silla">Silla de Ruedas</option>
+                    <option value="muletas">Muletas / Andaderas</option>
+                    <option value="medicamento">Medicamento vigente</option>
+                </select>
+                <div id="needResult" style="margin-top: 15px; padding: 10px; border-radius: 10px;"></div>
+            </div>
+
+            <div class="location-grid">
+                <div class="location-card">
+                    <strong>Cáritas GDL</strong>
+                    <p>Belisario Domínguez 511.</p>
+                    <a href="https://www.google.com/maps/search/Caritas+Guadalajara" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>Albergue Los Pinos</strong>
+                    <p>Atención a pacientes de Hospitales Civiles.</p>
+                    <a href="https://www.google.com/maps/search/Albergue+Los+Pinos+GDL" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+                <div class="location-card">
+                    <strong>Cruz Roja GDL</strong>
+                    <p>Parque Morelos. Insumos generales.</p>
+                    <a href="https://www.google.com/maps/search/Cruz+Roja+Guadalajara+Parque+Morelos" target="_blank" class="btn-map">📍 Ver Mapa</a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
