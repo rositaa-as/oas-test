@@ -791,6 +791,11 @@ function initializeDonationForm() {
         typeSelect.removeEventListener('change', handleDonationTypeChange);
         // Agregar nuevo listener
         typeSelect.addEventListener('change', handleDonationTypeChange);
+        
+        // Si ya hay un tipo seleccionado, mostrar el campo de cantidad
+        if (typeSelect.value) {
+            handleDonationTypeChange({ target: typeSelect });
+        }
     }
     
     // Establecer fecha de hoy por defecto
