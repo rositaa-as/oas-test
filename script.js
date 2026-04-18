@@ -814,24 +814,37 @@ function handleDonationTypeChange(event) {
     const quantityLabel = document.getElementById('quantityLabel');
     const quantityHint = document.getElementById('quantityHint');
     
-    const config = donationConfig[event.target.value];
+    const selectedType = event.target.value;
+    const config = donationConfig[selectedType];
     
-    if (config && config.requiresQuantity) {
+    if (selectedType && config && config.requiresQuantity) {
+        // Mostrar y habilitar el campo
         quantityField.style.display = 'block';
+        quantityInput.disabled = false;
         quantityInput.required = true;
         quantityLabel.textContent = config.label;
         quantityInput.placeholder = config.placeholder;
         quantityHint.textContent = config.hint;
         
         // Configurar validación mínima para cabello
-        if (event.target.value === 'cabello') {
+        if (selectedType === 'cabello') {
             quantityInput.min = 30;
             quantityInput.max = 60;
         } else {
             quantityInput.min = 1;
             quantityInput.max = 1000000;
         }
+    } else if (!selectedType) {
+        // Si no hay tipo seleccionado, mostrar pero deshabilitar
+        quantityField.style.display = 'block';
+        quantityInput.disabled = true;
+        quantityInput.required = false;
+        quantityInput.value = '';
+        quantityLabel.textContent = 'Cantidad';
+        quantityInput.placeholder = 'Primero selecciona un tipo de donación';
+        quantityHint.textContent = 'Selecciona un tipo de donación para habilitar este campo';
     } else {
+        // Tipo que no requiere cantidad
         quantityField.style.display = 'none';
         quantityInput.required = false;
         quantityInput.value = '';
