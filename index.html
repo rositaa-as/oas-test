@@ -248,10 +248,33 @@
             </div>
 
             <div class="interactive-card">
-                <h3>📏 Regla Virtual</h3>
-                <p>Mínimo <strong>30 cm</strong> de largo, limpio y seco.</p>
-                <div style="height: 10px; width: 100%; background: #eee; border-radius: 5px; margin-top: 15px;">
-                    <div style="width: 75%; height: 100%; background: var(--pink-accent); border-radius: 5px;"></div>
+                <h3>📏 Mide tu Donación de Cabello</h3>
+                <p style="margin-bottom: 20px;">Desliza para medir la longitud de tu cabello. <strong>Mínimo 30 cm</strong> para poder donar.</p>
+                
+                <div class="hair-slider-container">
+                    <div class="hair-length-display">
+                        <span id="hairLengthValue">0</span> cm
+                    </div>
+                    
+                    <input type="range" id="hairSlider" class="hair-slider" min="0" max="60" step="10" value="0" oninput="updateHairLength(this.value)">
+                    
+                    <div class="hair-slider-labels">
+                        <span>0</span>
+                        <span>10</span>
+                        <span>20</span>
+                        <span>30</span>
+                        <span>40</span>
+                        <span>50</span>
+                        <span>60</span>
+                    </div>
+                    
+                    <div id="hairMessage" class="hair-message">
+                        Desliza para comenzar a medir
+                    </div>
+                    
+                    <div class="hair-progress-bar">
+                        <div id="hairProgress" class="hair-progress-fill"></div>
+                    </div>
                 </div>
             </div>
 

@@ -1,4 +1,4 @@
-// Almacenamiento de donaciones (cache local)
+// Almacenamiento de donaciones (local)
 let donations = [];
 
 // Configuración de tipos de donación
@@ -85,6 +85,61 @@ function updateNeeds() {
     } else { res.innerHTML = ""; }
 }
 
+/**
+ * Actualiza la visualización del slider de cabello
+ */
+function updateHairLength(value) {
+    const length = parseInt(value);
+    const display = document.getElementById('hairLengthValue');
+    const message = document.getElementById('hairMessage');
+    const progress = document.getElementById('hairProgress');
+    
+    // Actualizar valor
+    display.textContent = length;
+    
+    // Actualizar barra de progreso (60cm = 100%)
+    const progressPercent = (length / 60) * 100;
+    progress.style.width = progressPercent + '%';
+    
+    // Mensajes motivacionales según la longitud
+    const messages = {
+        0: {
+            text: "🤔 Desliza para comenzar a medir",
+            class: ""
+        },
+        10: {
+            text: "📏 Aún muy corto... ¡Sigue creciendo!",
+            class: "not-enough"
+        },
+        20: {
+            text: "💪 ¡Vas por buen camino! Necesitas al menos 30 cm",
+            class: "almost"
+        },
+        30: {
+            text: "✅ ¡Perfecto! Ya puedes donar y ayudar a alguien",
+            class: "good"
+        },
+        40: {
+            text: "🌟 ¡Excelente longitud! Tu donación será muy valiosa",
+            class: "good"
+        },
+        50: {
+            text: "💝 ¡Increíble! Podrás hacer una peluca completa",
+            class: "excellent"
+        },
+        60: {
+            text: "🎉 ¡Máximo alcanzado! Tu generosidad cambiará vidas",
+            class: "excellent"
+        }
+    };
+    
+    const messageData = messages[length];
+    if (messageData) {
+        message.textContent = messageData.text;
+        message.className = 'hair-message ' + messageData.class;
+    }
+}
+
 // ============================================
 // FUNCIONES DE FIRESTORE
 // ============================================
@@ -96,6 +151,12 @@ async function updateCommunityStats(donationType, quantity, isDelete = false) {
     const statsRef = db.collection('donaciones_totales').doc('stats');
     
     try {
+        // Validar que la cantidad sea positiva
+        if (quantity <= 0) {
+            console.warn('⚠️ Cantidad inválida para actualizar estadísticas:', quantity);
+            return;
+        }
+        
         const increment = isDelete ? -quantity : quantity;
         const fieldMap = {
             'tapitas': 'total_tapitas',
@@ -127,6 +188,23 @@ async function updateCommunityStats(donationType, quantity, isDelete = false) {
                 total_medicamento: 0,
                 last_updated: firebase.firestore.FieldValue.serverTimestamp()
             });
+        }
+        
+        // Si es eliminación, verificar que no resulte en valores negativos
+        if (isDelete) {
+            const currentStats = await statsRef.get();
+            if (currentStats.exists) {
+                const currentValue = currentStats.data()[field] || 0;
+                if (currentValue - quantity < 0) {
+                    console.warn(`⚠️ No se puede restar ${quantity} de ${field}, valor actual: ${currentValue}`);
+                    // Ajustar a 0 en lugar de negativo
+                    await statsRef.update({
+                        [field]: 0,
+                        last_updated: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return;
+                }
+            }
         }
         
         // Actualizar el campo específico
@@ -227,7 +305,12 @@ async function saveDonationToFirestore(donation) {
         
         const quantity = parseInt(donation.quantity);
         if (isNaN(quantity) || quantity <= 0) {
-            throw new Error('Cantidad inválida');
+            throw new Error('Cantidad inválida: debe ser mayor a 0');
+        }
+        
+        // Validación adicional para cabello
+        if (donation.type === 'cabello' && (quantity < 30 || quantity > 60)) {
+            throw new Error('Longitud de cabello inválida: debe estar entre 30 y 60 cm');
         }
         
         // Guardar en colección /donations
@@ -515,14 +598,29 @@ async function addDonation(event) {
     // Validar cantidad según tipo
     const config = donationConfig[type];
     if (config && config.requiresQuantity) {
-        if (!quantity || quantity <= 0) {
-            alert('⚠️ Por favor ingresa una cantidad válida');
+        const numQuantity = parseInt(quantity);
+        
+        // Validar que sea un número válido y positivo
+        if (!quantity || isNaN(numQuantity) || numQuantity <= 0) {
+            alert('⚠️ Por favor ingresa una cantidad válida (mayor a 0)');
             return;
         }
         
-        // Validación especial para cabello (mínimo 30cm)
-        if (type === 'cabello' && quantity < 30) {
-            alert('⚠️ La longitud mínima para donar cabello es de 30 cm');
+        // Validación especial para cabello (mínimo 30cm, máximo 60cm)
+        if (type === 'cabello') {
+            if (numQuantity < 30) {
+                alert('⚠️ La longitud mínima para donar cabello es de 30 cm');
+                return;
+            }
+            if (numQuantity > 60) {
+                alert('⚠️ La longitud máxima permitida es de 60 cm. Si tu cabello es más largo, puedes registrar 60 cm.');
+                return;
+            }
+        }
+        
+        // Validación para evitar cantidades excesivamente grandes (posible error de entrada)
+        if (numQuantity > 1000000) {
+            alert('⚠️ La cantidad ingresada parece demasiado grande. Por favor verifica.');
             return;
         }
     }
