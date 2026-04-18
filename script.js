@@ -90,35 +90,71 @@ function updateNeeds() {
 // ============================================
 
 /**
+ * Genera un ID de donación en formato ddmmyyhhmmss_userId
+ */
+function generateDonationId(userId) {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    
+    return `${day}${month}${year}${hours}${minutes}${seconds}_${userId}`;
+}
+
+/**
  * Guarda una donación en Firestore
  */
 async function saveDonationToFirestore(donation) {
     const user = firebase.auth().currentUser;
     if (!user) {
-        console.error('No hay usuario autenticado');
-        return null;
+        const error = new Error('No hay usuario autenticado');
+        console.error('❌', error.message);
+        throw error;
     }
     
     try {
-        // Crear ID único: timestamp + userId
-        const donationId = `${Date.now()}_${user.uid}`;
+        // Crear ID único en formato ddmmyyhhmmss_userId
+        const donationId = generateDonationId(user.uid);
+        
+        // Validar datos antes de guardar
+        if (!donation.type || !donation.date) {
+            throw new Error('Datos de donación incompletos');
+        }
+        
+        const quantity = parseInt(donation.quantity);
+        if (isNaN(quantity) || quantity <= 0) {
+            throw new Error('Cantidad inválida');
+        }
         
         // Guardar en colección /donations
         await db.collection('donations').doc(donationId).set({
             user_id: user.uid,
             type: donation.type,
-            quantity: parseInt(donation.quantity) || 1,
+            quantity: quantity,
             date: donation.date,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
         
         // Actualizar estadísticas del usuario en /users/{user_id}
-        await updateUserStats(user.uid, donation.type, parseInt(donation.quantity) || 1);
+        await updateUserStats(user.uid, donation.type, quantity);
         
         console.log('✅ Donación guardada en Firestore:', donationId);
         return donationId;
     } catch (error) {
-        console.error('❌ Error al guardar donación:', error);
+        console.error('❌ Error al guardar donación:', error.message);
+        
+        // Mensajes de error más específicos
+        if (error.code === 'permission-denied') {
+            throw new Error('No tienes permisos para guardar donaciones. Verifica las reglas de Firestore.');
+        } else if (error.code === 'unavailable') {
+            throw new Error('No se puede conectar a Firestore. Verifica tu conexión a internet.');
+        } else if (error.code === 'not-found') {
+            throw new Error('La colección de Firestore no existe. Verifica la configuración.');
+        }
+        
         throw error;
     }
 }
@@ -127,17 +163,26 @@ async function saveDonationToFirestore(donation) {
  * Actualiza las estadísticas del usuario
  */
 async function updateUserStats(userId, donationType, quantity) {
+    if (!userId) {
+        throw new Error('ID de usuario no proporcionado');
+    }
+    
     const userRef = db.collection('users').doc(userId);
     
     try {
         const userDoc = await userRef.get();
         const user = firebase.auth().currentUser;
         
+        if (!user) {
+            throw new Error('Usuario no autenticado');
+        }
+        
         if (!userDoc.exists) {
             // Crear documento de usuario si no existe
+            console.log('📝 Creando perfil de usuario en Firestore...');
             await userRef.set({
                 name: user.displayName || 'Usuario',
-                email: user.email,
+                email: user.email || '',
                 total_tapitas: 0,
                 total_donations: 0,
                 created_at: firebase.firestore.FieldValue.serverTimestamp()
@@ -158,7 +203,14 @@ async function updateUserStats(userId, donationType, quantity) {
         await userRef.update(updates);
         console.log('✅ Estadísticas de usuario actualizadas');
     } catch (error) {
-        console.error('❌ Error al actualizar estadísticas:', error);
+        console.error('❌ Error al actualizar estadísticas:', error.message);
+        
+        if (error.code === 'permission-denied') {
+            throw new Error('No tienes permisos para actualizar tu perfil. Verifica las reglas de Firestore.');
+        } else if (error.code === 'not-found') {
+            throw new Error('No se pudo encontrar el documento del usuario.');
+        }
+        
         throw error;
     }
 }
@@ -168,27 +220,52 @@ async function updateUserStats(userId, donationType, quantity) {
  */
 async function loadDonationsFromFirestore() {
     const user = firebase.auth().currentUser;
-    if (!user) return;
+    if (!user) {
+        console.warn('⚠️ No hay usuario autenticado para cargar donaciones');
+        return;
+    }
     
     try {
+        console.log('📥 Cargando donaciones desde Firestore...');
+        
         const snapshot = await db.collection('donations')
             .where('user_id', '==', user.uid)
             .orderBy('timestamp', 'desc')
             .get();
         
-        donations = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            // Convertir timestamp de Firestore a fecha
-            date: doc.data().date || new Date().toISOString().split('T')[0]
-        }));
+        if (snapshot.empty) {
+            console.log('ℹ️ No se encontraron donaciones para este usuario');
+            donations = [];
+        } else {
+            donations = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                // Convertir timestamp de Firestore a fecha
+                date: doc.data().date || new Date().toISOString().split('T')[0]
+            }));
+            console.log(`✅ ${donations.length} donaciones cargadas desde Firestore`);
+        }
         
         renderDonations();
         await updateStatsFromFirestore();
         
-        console.log(`✅ ${donations.length} donaciones cargadas desde Firestore`);
     } catch (error) {
-        console.error('❌ Error al cargar donaciones:', error);
+        console.error('❌ Error al cargar donaciones:', error.message);
+        
+        if (error.code === 'permission-denied') {
+            alert('⚠️ No tienes permisos para ver las donaciones. Verifica las reglas de Firestore.');
+        } else if (error.code === 'failed-precondition') {
+            console.error('⚠️ Necesitas crear un índice en Firestore. Revisa la consola de Firebase.');
+            alert('⚠️ Se necesita configurar un índice en Firestore. Revisa la consola del navegador para más detalles.');
+        } else if (error.code === 'unavailable') {
+            alert('⚠️ No se puede conectar a Firestore. Verifica tu conexión a internet.');
+        } else {
+            alert('⚠️ Error al cargar donaciones. Revisa la consola para más detalles.');
+        }
+        
+        // Mostrar lista vacía en caso de error
+        donations = [];
+        renderDonations();
     }
 }
 
@@ -197,29 +274,40 @@ async function loadDonationsFromFirestore() {
  */
 async function updateStatsFromFirestore() {
     const user = firebase.auth().currentUser;
-    if (!user) return;
+    if (!user) {
+        console.warn('⚠️ No hay usuario autenticado para actualizar estadísticas');
+        return;
+    }
     
     try {
         const userDoc = await db.collection('users').doc(user.uid).get();
         
         if (userDoc.exists) {
             const userData = userDoc.data();
-            document.getElementById('totalTapitas').textContent = 
+            document.getElementById('totalTapitas').textContent =
                 (userData.total_tapitas || 0).toLocaleString();
+        } else {
+            console.log('ℹ️ Perfil de usuario no encontrado, se creará con la primera donación');
+            document.getElementById('totalTapitas').textContent = '0';
         }
         
         // Calcular otras estadísticas desde las donaciones
         const totalSangre = donations.filter(d => d.type === 'sangre')
             .reduce((sum, d) => sum + (d.quantity || 1), 0);
         
-        const totalOtros = donations.filter(d => 
+        const totalOtros = donations.filter(d =>
             d.type !== 'tapitas' && d.type !== 'sangre'
         ).reduce((sum, d) => sum + (d.quantity || 1), 0);
         
         document.getElementById('totalSangre').textContent = totalSangre;
         document.getElementById('totalOtros').textContent = totalOtros;
     } catch (error) {
-        console.error('❌ Error al actualizar estadísticas:', error);
+        console.error('❌ Error al actualizar estadísticas:', error.message);
+        
+        // Mostrar valores por defecto en caso de error
+        document.getElementById('totalTapitas').textContent = '0';
+        document.getElementById('totalSangre').textContent = '0';
+        document.getElementById('totalOtros').textContent = '0';
     }
 }
 
@@ -227,15 +315,25 @@ async function updateStatsFromFirestore() {
  * Elimina una donación de Firestore
  */
 async function deleteDonationFromFirestore(donationId) {
+    if (!donationId) {
+        throw new Error('ID de donación no proporcionado');
+    }
+    
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        throw new Error('No hay usuario autenticado');
+    }
+    
     try {
+        console.log('🗑️ Eliminando donación:', donationId);
+        
         const donationDoc = await db.collection('donations').doc(donationId).get();
         
         if (!donationDoc.exists) {
-            throw new Error('Donación no encontrada');
+            throw new Error('Donación no encontrada en la base de datos');
         }
         
         const donationData = donationDoc.data();
-        const user = firebase.auth().currentUser;
         
         // Verificar que el usuario sea el dueño
         if (donationData.user_id !== user.uid) {
@@ -247,20 +345,35 @@ async function deleteDonationFromFirestore(donationId) {
         
         // Actualizar estadísticas del usuario (restar)
         const userRef = db.collection('users').doc(user.uid);
-        const updates = {
-            total_donations: firebase.firestore.FieldValue.increment(-1)
-        };
+        const userDoc = await userRef.get();
         
-        if (donationData.type === 'tapitas') {
-            updates.total_tapitas = firebase.firestore.FieldValue.increment(-donationData.quantity);
+        if (userDoc.exists) {
+            const updates = {
+                total_donations: firebase.firestore.FieldValue.increment(-1)
+            };
+            
+            if (donationData.type === 'tapitas') {
+                updates.total_tapitas = firebase.firestore.FieldValue.increment(-donationData.quantity);
+            }
+            
+            await userRef.update(updates);
+        } else {
+            console.warn('⚠️ Perfil de usuario no encontrado, no se actualizaron estadísticas');
         }
-        
-        await userRef.update(updates);
         
         console.log('✅ Donación eliminada de Firestore');
         return true;
     } catch (error) {
-        console.error('❌ Error al eliminar donación:', error);
+        console.error('❌ Error al eliminar donación:', error.message);
+        
+        if (error.code === 'permission-denied') {
+            throw new Error('No tienes permisos para eliminar esta donación. Verifica las reglas de Firestore.');
+        } else if (error.code === 'not-found') {
+            throw new Error('La donación no existe o ya fue eliminada.');
+        } else if (error.code === 'unavailable') {
+            throw new Error('No se puede conectar a Firestore. Verifica tu conexión a internet.');
+        }
+        
         throw error;
     }
 }
@@ -280,17 +393,31 @@ async function addDonation(event) {
     const date = document.getElementById('donationDate').value;
     const notes = document.getElementById('donationNotes').value;
     
-    // Validar cantidad según tipo
-    const config = donationConfig[type];
-    if (config.requiresQuantity && (!quantity || quantity <= 0)) {
-        alert('Por favor ingresa una cantidad válida');
+    // Validar que haya un tipo seleccionado
+    if (!type) {
+        alert('⚠️ Por favor selecciona un tipo de donación');
         return;
     }
     
-    // Validación especial para cabello (mínimo 30cm)
-    if (type === 'cabello' && quantity < 30) {
-        alert('⚠️ La longitud mínima para donar cabello es de 30 cm');
+    // Validar fecha
+    if (!date) {
+        alert('⚠️ Por favor selecciona una fecha');
         return;
+    }
+    
+    // Validar cantidad según tipo
+    const config = donationConfig[type];
+    if (config && config.requiresQuantity) {
+        if (!quantity || quantity <= 0) {
+            alert('⚠️ Por favor ingresa una cantidad válida');
+            return;
+        }
+        
+        // Validación especial para cabello (mínimo 30cm)
+        if (type === 'cabello' && quantity < 30) {
+            alert('⚠️ La longitud mínima para donar cabello es de 30 cm');
+            return;
+        }
     }
     
     const donation = {
@@ -300,10 +427,11 @@ async function addDonation(event) {
         notes: notes
     };
     
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
     try {
         // Mostrar indicador de carga
-        const submitBtn = event.target.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '⏳ Guardando...';
         submitBtn.disabled = true;
         
@@ -324,12 +452,27 @@ async function addDonation(event) {
         // Mostrar mensaje de éxito
         alert('✅ ¡Donación registrada exitosamente en la base de datos!');
     } catch (error) {
-        alert('❌ Error al guardar la donación. Por favor intenta de nuevo.');
-        console.error(error);
+        console.error('❌ Error completo:', error);
+        
+        // Mensajes de error más específicos
+        let errorMessage = '❌ Error al guardar la donación.\n\n';
+        
+        if (error.message.includes('permisos') || error.message.includes('permission')) {
+            errorMessage += 'Problema de permisos en Firestore. Verifica las reglas de seguridad.';
+        } else if (error.message.includes('conexión') || error.message.includes('unavailable')) {
+            errorMessage += 'No se puede conectar a la base de datos. Verifica tu conexión a internet.';
+        } else if (error.message.includes('autenticado') || error.message.includes('auth')) {
+            errorMessage += 'Sesión expirada. Por favor cierra sesión y vuelve a iniciar.';
+        } else if (error.message.includes('incompletos') || error.message.includes('inválida')) {
+            errorMessage += error.message;
+        } else {
+            errorMessage += 'Por favor intenta de nuevo. Si el problema persiste, revisa la consola del navegador.';
+        }
+        
+        alert(errorMessage);
         
         // Restaurar botón en caso de error
-        const submitBtn = event.target.querySelector('button[type="submit"]');
-        submitBtn.innerHTML = '✅ Registrar Donación';
+        submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     }
 }
@@ -395,8 +538,22 @@ async function deleteDonation(id) {
         await loadDonationsFromFirestore();
         alert('✅ Donación eliminada correctamente');
     } catch (error) {
-        alert('❌ Error al eliminar la donación. Por favor intenta de nuevo.');
-        console.error(error);
+        console.error('❌ Error completo:', error);
+        
+        // Mensajes de error más específicos
+        let errorMessage = '❌ Error al eliminar la donación.\n\n';
+        
+        if (error.message.includes('no encontrada') || error.message.includes('not found')) {
+            errorMessage += 'La donación no existe o ya fue eliminada.';
+        } else if (error.message.includes('permiso') || error.message.includes('permission')) {
+            errorMessage += 'No tienes permisos para eliminar esta donación.';
+        } else if (error.message.includes('conexión') || error.message.includes('unavailable')) {
+            errorMessage += 'No se puede conectar a la base de datos. Verifica tu conexión a internet.';
+        } else {
+            errorMessage += 'Por favor intenta de nuevo. Si el problema persiste, revisa la consola del navegador.';
+        }
+        
+        alert(errorMessage);
     }
 }
 
@@ -449,5 +606,3 @@ document.addEventListener('DOMContentLoaded', function() {
         dateInput.valueAsDate = new Date();
     }
 });
-
-// Made with Bob
